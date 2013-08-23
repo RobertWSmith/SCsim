@@ -1,41 +1,48 @@
-### destination reference class
+# @name destination-class
+# @aliases destination
+# 
+# @title Class \code{destination}
+# 
+# @description Abstract class which tracks the destination and in-transit inventory. It also houses the ordering strategy methods.
+# 
+# \section{Fields} {
+#  \describe{
+#    \item{\code{date}:}{Stores the number of simulation days. Locked after constructor. (numeric, length = #days)}
+#    \item{\code{name}:}{Stores the destination name. Locked after constructor. (character, length = 1)}
+#    \item{\code{region}:}{Stores the region name for the destination. Locked after constructor. (character, length = 1)}
+#    \item{\code{on_hand_inventory}:}{Stores the on hand inventory throughout the simulation. (numeric, length = #days)}
+#    \item{\code{actual_demand}:}{Stores the destination's actual demand. Locked after constructor. (numeric, length = #days)}
+#    \item{\code{expected_demand}:}{Stores the destination's expected / forecasted demand. Locked after constructor. (numeric, length = #days)}
+#    \item{\code{forecast_error}:}{Stores the destination's forecast error (actual - expected). Locked after constructor. (numeric, length = #days)}
+#    \item{\code{pipeline_target}:}{Stores the calculated pipeline target for each simulation step. (numeric, length = #days)}
+#    \item{\code{in_transit_order}:}{Stores the calculated in transit order for each simulation step. (numeric, length = #days)}
+#    \item{\code{demand_target}:}{Stores the calculated demand target for each simulation step. (numeric, length = #days)}
+#    
+#  }
+# }
+# 
+# \section{Methods} {
+#  \describe{
+#    \item{\code{new()}:}{Creates a new destination object}
+#  }
+# }
+# 
+# @seealso \code{is.destination} and \code{as.data.frame.destination}
+# @docType class
+# @keywords classes
+NULL
 
-# @title Destination Reference Class
-# 
-# @description
-# \code{.dest} holds the reference class initializer for the detaintion class.
-# 
-# @details
-# This class holds the detsination data, such as the in-transit, on-hand & 
-# various other elements of the discrete event simulation for supply chain / 
-# transportation simulation experiements
-# 
-# @rdName destination
-# @export 
+
+
+
+
+
 .dest <- setRefClass(
   "destination",
   fields = list(
-    date = "numeric",
-    name = "character",
-    region = "character",
-    on_hand_inventory = "numeric",
-    actual_demand = "numeric",
-    expected_demand = "numeric",
-    forecast_error = "numeric",
-    pipeline_target = "numeric",
-    in_transit_order = "numeric",
-    demand_target = "numeric",
-    operating_schedule = "logical",
-    ordering_schedule = "logical",
-    orders_per_week = "numeric",
-    strategy = "character",
-    disruption = "logical",
-    order_volume = "numeric",
-    release_date = "numeric",
-    delivered = "logical",
-    in_transit_volume = "numeric",
-    shipment_size = "numeric",
-    transit_time = "matrix"
+    background = "background_data",
+    static = "static_data",
+    dynamic = "dynamic_data"
   )
 )
 

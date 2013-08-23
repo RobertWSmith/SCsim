@@ -1,9 +1,9 @@
 Package: SCsim
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
-Date: 2013-08-05
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Title: Tools for Simulating the Supply Chain
+Version: 0.1
+Date: 2013-08-23
+Author: Rob Smith <rob_smith@goodyear.com>
+Maintainer: Rob Smith <rob_smith@goodyear.com>
+Description: This project intends to simulate the supply chain for raw materials and finished goods. It is extensible, and can simulate from sample statistics or historical data. The simulation also automatically determines which type of data it is presented with. Also, new & novel ordering strategies can be added to the code base with ease. Additionally, effort has been added to make the simulation run as fast as possible by utilizing parallel processing for the largest chunks.
+License: GPL-2
