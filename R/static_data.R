@@ -10,14 +10,14 @@
     transit_time = "matrix"
   ),
   methods = list(
-    #### more complex getters
+    #### SIMPLIFIED GETTERS -- FOR USERS
     actualDemand = function(time, range = NULL) {
       # history -- only backward looking & today
       if (!is.null(range)) {
         if ((time - range < 1)) {
           time <- 1:time
         } else {
-          time <- range:time
+          time <- (time-range):time
         }
       }
       
@@ -29,11 +29,9 @@
         if ((time + range) > length(expected_demand)) {
           time <- time:(length(expected_demand))
         } else {
-          time <- time:range
+          time <- time:(time+range)
         }
       }
-        
-
       
       return(getExpectedDemand(time))
     },
@@ -43,7 +41,7 @@
         if ((time - range < 1)) {
           time <- 1:time
         } else {
-          time <- range:time
+          time <- (time-range):time
         }
       }
       
@@ -51,15 +49,25 @@
     },
     isOperating = function(time, range = NULL) {
       # plan -- only forward looking & today
-      stopifnot(range >= time | is.null(range))
-      if (!is.null(range)) time <- time:range
+      if (!is.null(range)) {
+        if ((time + range) > length(operating_schedule)) {
+          time <- time:length(operating_schedule)
+        } else {
+          time <- time:(time+range)
+        }
+      }
       
       return(getOperatingSchedule(time))
     },
     isOrdering = function(time, range = NULL) {
       # plan -- only forward looking & today
-      stopifnot(range >= time | is.null(range))
-      if (!is.null(range)) time <- time:range
+      if (!is.null(range)) {
+        if ((time + range) > length(ordering_schedule)) {
+          time <- time:length(ordering_schedule)
+        } else {
+          time <- time:(time+range)
+        }
+      }
       
       return(getOrderingSchedule(time))
     },
@@ -69,7 +77,7 @@
         if ((time - range < 1)) {
           time <- 1:time
         } else {
-          time <- range:time
+          time <- (time-range):time
         }
       }
       
@@ -81,15 +89,14 @@
         if ((time - range < 1)) {
           time <- 1:time
         } else {
-          time <- range:time
+          time <- (time-range):time
         }
       }
       
       return(rowSums(getTransitTime(time), na.rm = TRUE))
     },
     
-    
-    #### raw getters w/ error & bounds checking
+    #### raw getters w/ error & bounds checking 
     getActualDemand = function(time = NULL) {
       # error checking
       stopifnot(is.numeric(time) | is.null(time))
@@ -213,7 +220,7 @@
           time <- 1:(max(time))
         }
         
-        return(transit_time[time, ])
+        return(as.matrix(transit_time[time, ], nrow = length(time)))
       }
     }
   )
@@ -229,7 +236,7 @@ static_data <- function(ACTUAL_DEMAND, EXPECTED_DEMAND, OPERATING_SCHEDULE,
   stopifnot(is.logical(DISRUPTION))
   stopifnot(is.numeric(TRANSIT_TIME))
   
-  # ACTUAL DEMAND IS THE LITMUS TEST HERE
+  # ACTUAL DEMAND LENGTH IS THE LITMUS TEST
   stopifnot(length(ACTUAL_DEMAND) == length(EXPECTED_DEMAND)) 
   stopifnot(length(ACTUAL_DEMAND) == length(OPERATING_SCHEDULE))
   stopifnot(length(ACTUAL_DEMAND) == length(ORDERING_SCHEDULE))
@@ -238,9 +245,24 @@ static_data <- function(ACTUAL_DEMAND, EXPECTED_DEMAND, OPERATING_SCHEDULE,
   
   # forcing TRANSIT_TIME to matrix, if easily doable
   if (!is.matrix(TRANSIT_TIME)) {
-    if (is.data.frame(TRANSIT_TIME)) TRANSIT_TIME <- as.matrix(TRANSIT_TIME)
-    else if (is.vector(TRANSIT_TIME)) TRANSIT_TIME <- as.matrix(TRANSIT_TIME, ncol = 1)
-    else stop("Cannot convert Transit Time to matrix.")
+    if (is.data.frame(TRANSIT_TIME)) {
+      
+      # CHECKS IF ALL COLUMNS IN DATA FRAME ARE NUMERIC -- IF FALSE THROWS ERROR
+      if (sapply(TRANSIT_TIME, is.numeric) == rep(TRUE, length(cols))) {
+        TRANSIT_TIME <- as.matrix(TRANSIT_TIME)
+      } else {
+        stop("Data frames are required to only have numeric columns to be able\n"+
+               "to convert to a numeric matrix (required format).")
+      }
+    }
+    else if (is.vector(TRANSIT_TIME)) {
+      TRANSIT_TIME <- as.matrix(TRANSIT_TIME, ncol = 1)
+    }
+    else {
+      stop("Cannot convert Transit Time to numeric matrix (required format).\n" +
+             "Please supply either numeric matrix, numeric vector or \n" + 
+             "data frame with only numeric columns.")
+    }
   }
   
   temp <- .sd$new(

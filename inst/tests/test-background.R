@@ -1,7 +1,8 @@
 library(testthat)
 
-# source('C:/Users/a421356/R-GitHub/SCsim/R/background.R')
-# test_file('C:/Users/a421356/R-GitHub/SCsim/inst/tests/test-background.R')
+# source(file.path(getwd(), "R", "background.R"))
+# test_file(file.path(getwd(), "inst", "tests", "test-background.R))
+
 
 #### Background Data Class - Test Objects ----
 TOTAL_DAYS = days.pass <- c(100,1000,10000)
@@ -26,7 +27,8 @@ orders_per_week.fail <- list(num1 = 8, num2 = -1, num3 = 0, bool = TRUE,  char =
 context("Background Data Class - Loads Properly")
 test_that("Background Data Class - Loads Properly",
 {
-  source('C:/Users/a421356/R-GitHub/SCsim/R/background.R')
+  source(file.path(getwd(), "R", "background.R"))
+  
   
   for (d in 1:length(days.pass)) {
     expect_that(
@@ -88,7 +90,7 @@ test_that("Background Data Class - Loads Properly",
 context("Background Data Class - Fails Properly")
 test_that("Background Data Class - Fails Properly",
 {
-  source('C:/Users/a421356/R-GitHub/SCsim/R/background.R')
+  source(file.path(getwd(), "R", "background.R"))
   
   for (d in 1:length(days.fail)) {
     expect_that(
@@ -143,7 +145,7 @@ test_that("Background Data Class - Fails Properly",
 context("Background Data Class - Methods Load & Return Correctly")
 test_that("Background Data Class - Methods Load & Return Correctly",
 {
-  source('C:/Users/a421356/R-GitHub/SCsim/R/background.R')
+  source(file.path(getwd(), "R", "background.R"))
   
   bg <- background_class(TOTAL_DAYS = days.pass[1], NAME = name.pass[1], REGION = region.pass[1], 
                          STRATEGY = strategy.pass[1], SHIPMENT_SIZE = shipment_size.pass[1], 
