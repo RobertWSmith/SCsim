@@ -24,9 +24,12 @@ exp.fail  <- rep("a", 100)
 operate.fail <- sample(c("TRUE", "FALSE"), size = 100, replace = TRUE)
 order.fail <- sample(c("TRUE", "FALSE"), size = 100, replace = TRUE)
 disrupt.fail <- sample(c("TRUE", "FALSE"), size = 100, replace = TRUE)
-transit.fail <- as.matrix(cbind(
-  sample(c("TRUE", "FALSE"), size = 100, replace = TRUE), 
-  sample(c("TRUE", "FALSE"), size = 100, replace = TRUE)))
+transit.fail <- as.matrix(
+  cbind(
+    sample(c("TRUE", "FALSE"), size = 100, replace = TRUE), 
+    sample(c("TRUE", "FALSE"), size = 100, replace = TRUE)
+  )
+)
 
 
 #### Static Data Class - Loads Correctly ----

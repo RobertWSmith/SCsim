@@ -1,4 +1,4 @@
-library(testthat)
+# test_file(file.path(getwd(), "inst", "tests", "test-destination_data.R"))
 
 days <- 100
 char.pass <- "test"

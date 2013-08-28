@@ -1,3 +1,5 @@
+library(testthat)
+
 .bd <- setRefClass(
   "background_data",
   fields = list(
@@ -6,7 +8,9 @@
     region = "character",
     strategy = "character",
     shipment_size = "numeric",
-    orders_per_week = "numeric"
+    orders_per_week = "numeric",
+    bias = "numeric",
+    quantile = "numeric"
   ),
   methods = list(
     getTotalDays = function() {return(total_days)},
@@ -14,11 +18,13 @@
     getRegion = function() {return(region)},
     getStrategy = function() {return(strategy)},
     getShipmentSize = function() {return(shipment_size)},
-    getOrdersPerWeek = function() {return(orders_per_week)}
+    getOrdersPerWeek = function() {return(orders_per_week)}.
+    getQuantile = function() {return(quantile)}
   )
 )
 
-background_class <- function(TOTAL_DAYS, NAME, REGION, STRATEGY, SHIPMENT_SIZE, ORDERS_PER_WEEK) {
+background_class <- function(TOTAL_DAYS, NAME, REGION, STRATEGY, SHIPMENT_SIZE, 
+                             ORDERS_PER_WEEK, BIAS = c(0.5,0.5), QUANTILE = 0.95) {
   # TYPE CHECKING -- THROWS ERROR FOR INCORRECT TYPE
   stopifnot(is.numeric(TOTAL_DAYS)); stopifnot(is.numeric(SHIPMENT_SIZE))
   stopifnot(is.numeric(ORDERS_PER_WEEK))
@@ -40,7 +46,9 @@ background_class <- function(TOTAL_DAYS, NAME, REGION, STRATEGY, SHIPMENT_SIZE, 
     region = toupper(as.character(REGION)), 
     strategy = toupper(as.character(STRATEGY)), 
     shipment_size = floor(SHIPMENT_SIZE), 
-    orders_per_week = floor(ORDERS_PER_WEEK)
+    orders_per_week = floor(ORDERS_PER_WEEK),
+    bias = BIAS,
+    quantile = QUANTILE
   )
   
   return(temp)

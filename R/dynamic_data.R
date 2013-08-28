@@ -1,3 +1,5 @@
+library(testthat)
+
 .dd <- setRefClass(
   "dynamic_data",
   fields = list(
@@ -11,219 +13,250 @@
     in_transit_volume = "numeric"
   ),
   methods = list(
-    #### simplified setters -- for users
-    updateOnHand = function(time, volume) {
-      # assumes you're updating tomorrow's inventory 
-      # and subtracting the volume supplied
-      
-      setOnHandInventory((time+1), (getOnHandInventory(time) - volume))
+    #### logic
+    updateOnHandInventory = function(current_day, volume) {
+      # removes the amount of inventory passed to volume for "tomorrow"
+      setOnHandInventory((current_day + 1), (getOnHandInventory(current_day) - volume))
     },
-    updateInTransitVolume = function() {
+    updateInTransitInventory = function(current_day) {
+      start <- ifelse((current_day - 21) < 1, 1, (current_day - 21))
+      
+      vol.log <- (in_transit_volume > 0)
+      del.log <- !(delivered)
+      
+      total.in_transit <- 0
+      for (i in start:current_day) {
+        if (vol.log[i] & del.log[i]) {
+          total.in_transit <- total.in_transit + in_transit_volume[i]
+        }
+      }
+      
+      return(total.in_transit)
+    },
+    updatePipelineOrder = function(current_day, quant_transit, expected_demand) {
+      
+      setPipelineTarget(
+        current_day, 
+        (quant_transit * expected_demand)
+      )
       
     },
-    updateTargets = function(time) {
-      
+    updateInTransitOrder = function(current_day) {
+      # in transit order -- calculated as:
+      # take pipeline target (calculated above) and subtract currently in transit cargo volume
+      setInTransitTarget(current_day, getPipelineTarget(current_day) - getInTransitTarget(current_day))
     },
-    order = function(time) {
-      
+    updateDemandOrder = function(current_day, dmd_order) {
+      setDemandTarget(current_day, dmd_order)
     },
-    recieve = function(time) {
+    placeOrder = function(current_day, order, release) {
+      setReleaseDate(current_day, release)
+      if (order > 0) {
+        setInTransitVolume(current_day, order)
+      } else {
+        setInTransitVolume(current_day, 0)
+      }
+    },
+    readyForDelivery = function(current_day) {
+      start <- ifelse((current_day - 50) < 1, 1, (current_day - 50))
       
+      # looking for volume greater than zero, release date less than or equal
+      # to current simulation current_day & delivered status to be FALSE
+      vol.log <- (in_transit_volume > 0) 
+      rel.log <- (release_date <= current_day) # eligible for release == TRUE
+      del.log <- !(delivered) # not delivered == TRUE
+      
+      total.released <- 0
+      for (i in start:current_day) {
+        if (vol.log[i] & rel.log[i] & del.log[i]) { # all TRUE get added together & delivery released
+          total.released <- total.released + in_transit_volume[i]
+          setDelivered(i)
+        }
+      }
+      
+      return(total.released)
     },
     
-    #### simplified getters -- for users
-    getOnHand = function(time) {
-      
-    },
-    getInTransitVolume = function(time) {
-      
-    },
-    getInTransitShipment = function(time) {
-      
-    },
-    
-    #### raw setters w/ error & bounds checking
-    setOnHandInventory = function(time, volume) {
-      if (time < length(on_hand_inventory)) {
-        on_hand_inventory[time] <<- volume
+    #### simple setters w/ error & bounds checking
+    setOnHandInventory = function(current_day, volume) {
+      if (current_day < length(on_hand_inventory)) {
+        on_hand_inventory[current_day] <<- volume
       } 
     },
-    setPipelineInventory = function(time, volume) {
-      if (time < length(pipeline_target)) {
-        pipeline_target[time] <<- volume
+    setPipelineTarget = function(current_day, volume) {
+      if (current_day < length(pipeline_target)) {
+        pipeline_target[current_day] <<- volume
       }      
     },
-    setInTransitOrder = function(time, volume) {
-      if (time < length(in_transit_order)) {
-        in_transit_order[time] <<- volume
+    setInTransitTarget = function(current_day, volume) {
+      if (current_day < length(in_transit_order)) {
+        in_transit_order[current_day] <<- volume
       }      
     },
-    setDemandTarget = function(time, volume) {
-      if (time < length(demand_target)) {
-        demand_target[time] <<- volume
+    setDemandTarget = function(current_day, volume) {
+      if (current_day < length(demand_target)) {
+        demand_target[current_day] <<- volume
       }      
     },
-    setOrderVolume = function(time, volume) {
-      if (time < length(order_volume)) {
-        order_volume[time] <<- volume
+    setOrderVolume = function(current_day, volume) {
+      if (current_day < length(order_volume)) {
+        order_volume[current_day] <<- volume
       }      
     },
-    setReleaseDate = function(time, date) {
-      if (time < length(release_date)) {
-        release_date[time] <<- date
+    setReleaseDate = function(current_day, date) {
+      if (current_day < length(release_date)) {
+        release_date[current_day] <<- date
       }      
     },
-    setDelivered = function(time) {
-      if (time < length(delivered)) {
-        delivered[time] <<- TRUE
+    setDelivered = function(current_day) {
+      if (current_day < length(delivered)) {
+        delivered[current_day] <<- TRUE
       }      
     },
-    setInTransitVolume = function(time, volume) {
-      if (time < length(in_transit_volume)) {
-        in_transit_volume[time] <<- volume
+    setInTransitVolume = function(current_day, volume) {
+      if (current_day < length(in_transit_volume)) {
+        in_transit_volume[current_day] <<- volume
       }      
     },
     
-    #### raw getters w/ error & bounds checking
-    getOnHandInventory = function(time = NULL) {
-      stopifnot(is.numeric(time) | is.null(time))
+    #### simple getters w/ error & bounds checking
+    getOnHandInventory = function(current_day = NULL) {
+      stopifnot(is.numeric(current_day) | is.null(current_day))
       
-      if (is.null(time)) {
+      if (is.null(current_day)) {
         return(on_hand_inventory)
       } else {
         # bounds checking
-        if (max(time) > length(on_hand_inventory)) {
-          time <- (min(time)):length(on_hand_inventory)
+        if (max(current_day) > length(on_hand_inventory)) {
+          current_day <- (min(current_day)):length(on_hand_inventory)
         }
-        if (min(time) < 1) {
-          time <- 1:(max(time))
+        if (min(current_day) < 1) {
+          current_day <- 1:(max(current_day))
         }
         
-        return(on_hand_inventory[time])
+        return(on_hand_inventory[current_day])
       }
     },
-    getPipelineTarget = function(time = NULL) {
-      stopifnot(is.numeric(time) | is.null(time))
+    getPipelineTarget = function(current_day = NULL) {
+      stopifnot(is.numeric(current_day) | is.null(current_day))
       
-      if (is.null(time)) {
+      if (is.null(current_day)) {
         return(pipeline_target)
       } else {
         # bounds checking
-        if (max(time) > length(pipeline_target)) {
-          time <- (min(time)):length(pipeline_target)
+        if (max(current_day) > length(pipeline_target)) {
+          current_day <- (min(current_day)):length(pipeline_target)
         }
-        if (min(time) < 1) {
-          time <- 1:(max(time))
+        if (min(current_day) < 1) {
+          current_day <- 1:(max(current_day))
         }
         
-        return(pipeline_target[time])
+        return(pipeline_target[current_day])
       }
     },
-    getInTransitOrder = function(time = NULL) {
-      stopifnot(is.numeric(time) | is.null(time))
+    getInTransitTarget = function(current_day = NULL) {
+      stopifnot(is.numeric(current_day) | is.null(current_day))
       
-      if (is.null(time)) {
+      if (is.null(current_day)) {
         return(in_transit_order)
       } else {
         # bounds checking
-        if (max(time) > length(in_transit_order)) {
-          time <- (min(time)):length(in_transit_order)
+        if (max(current_day) > length(in_transit_order)) {
+          current_day <- (min(current_day)):length(in_transit_order)
         }
-        if (min(time) < 1) {
-          time <- 1:(max(time))
+        if (min(current_day) < 1) {
+          current_day <- 1:(max(current_day))
         }
         
-        return(in_transit_order[time])
+        return(in_transit_order[current_day])
       }
     },
-    getDemandTarget = function(time = NULL) {
-      stopifnot(is.numeric(time) | is.null(time))
+    getDemandTarget = function(current_day = NULL) {
+      stopifnot(is.numeric(current_day) | is.null(current_day))
       
-      if (is.null(time)) {
+      if (is.null(current_day)) {
         return(demand_target)
       } else {
         # bounds checking
-        if (max(time) > length(demand_target)) {
-          time <- (min(time)):length(demand_target)
+        if (max(current_day) > length(demand_target)) {
+          current_day <- (min(current_day)):length(demand_target)
         }
-        if (min(time) < 1) {
-          time <- 1:(max(time))
+        if (min(current_day) < 1) {
+          current_day <- 1:(max(current_day))
         }
         
-        return(demand_target[time])
+        return(demand_target[current_day])
       }
     },
-    getOrderVolume = function(time = NULL) {
-      stopifnot(is.numeric(time) | is.null(time))
+    getOrderVolume = function(current_day = NULL) {
+      stopifnot(is.numeric(current_day) | is.null(current_day))
       
-      if (is.null(time)) {
+      if (is.null(current_day)) {
         return(order_volume)
       } else {
         # bounds checking
-        if (max(time) > length(order_volume)) {
-          time <- (min(time)):length(order_volume)
+        if (max(current_day) > length(order_volume)) {
+          current_day <- (min(current_day)):length(order_volume)
         }
-        if (min(time) < 1) {
-          time <- 1:(max(time))
+        if (min(current_day) < 1) {
+          current_day <- 1:(max(current_day))
         }
         
-        return(order_volume[time])
+        return(order_volume[current_day])
       }
     },
-    getReleaseDate = function(time = NULL) {
-      stopifnot(is.numeric(time) | is.null(time))
+    getReleaseDate = function(current_day = NULL) {
+      stopifnot(is.numeric(current_day) | is.null(current_day))
       
-      if (is.null(time)) {
+      if (is.null(current_day)) {
         return(release_date)
       } else {
         # bounds checking
-        if (max(time) > length(release_date)) {
-          time <- (min(time)):length(release_date)
+        if (max(current_day) > length(release_date)) {
+          current_day <- (min(current_day)):length(release_date)
         }
-        if (min(time) < 1) {
-          time <- 1:(max(time))
+        if (min(current_day) < 1) {
+          current_day <- 1:(max(current_day))
         }
         
-        return(release_date[time])
+        return(release_date[current_day])
       }
     },
-    getDelivered = function(time = NULL) {
-      stopifnot(is.numeric(time) | is.null(time))
+    getDelivered = function(current_day = NULL) {
+      stopifnot(is.numeric(current_day) | is.null(current_day))
       
-      if (is.null(time)) {
+      if (is.null(current_day)) {
         return(delivered)
       } else {
         # bounds checking
-        if (max(time) > length(delivered)) {
-          time <- (min(time)):length(delivered)
+        if (max(current_day) > length(delivered)) {
+          current_day <- (min(current_day)):length(delivered)
         }
-        if (min(time) < 1) {
-          time <- 1:(max(time))
+        if (min(current_day) < 1) {
+          current_day <- 1:(max(current_day))
         }
         
-        return(delivered[time])
+        return(delivered[current_day])
       }
     },
-    getInTransitVolume = function(time = NULL) {
-      stopifnot(is.numeric(time) | is.null(time))
+    getInTransitVolume = function(current_day = NULL) {
+      stopifnot(is.numeric(current_day) | is.null(current_day))
       
-      if (is.null(time)) {
-        
+      if (is.null(current_day)) {
         return(in_transit_volume)
-        
       } else {
         # bounds checking
-        if (max(time) > length(in_transit_volume)) {
-          time <- (min(time)):(length(in_transit_volume))
+        if (max(current_day) > length(in_transit_volume)) {
+          current_day <- (min(current_day)):length(in_transit_volume)
         }
-        if (min(time) < 1) {
-          time <- 1:(max(time))
+        if (min(current_day) < 1) {
+          current_day <- 1:(max(current_day))
         }
         
-        return(in_transit_volume[time])
+        return(in_transit_volume[current_day])
       }
     }
-    )
+  )
 )
 
 dynamic_data <- function(ON_HAND_INVENTORY, SIMULATION_DAYS) {
@@ -231,15 +264,21 @@ dynamic_data <- function(ON_HAND_INVENTORY, SIMULATION_DAYS) {
   stopifnot(is.numeric(SIMULATION_DAYS)); stopifnot(length(SIMULATION_DAYS) == 1)
   
   temp <- .dd$new(
-    on_hand_inventory = c(ON_HAND_INVENTORY, numeric((SIMULATION_DAYS - 1))), #NUM, 0
-    pipeline_target = numeric(SIMULATION_DAYS), #0
-    in_transit_order = numeric(SIMULATION_DAYS), #0
-    in_transit_volume = numeric(SIMULATION_DAYS), #0
-    demand_target = numeric(SIMULATION_DAYS), #0
-    order_volume = numeric(SIMULATION_DAYS), #0
-    release_date = rep((SIMULATION_DAYS + 1), SIMULATION_DAYS), #0
-    delivered = logical(SIMULATION_DAYS) #FALSE
-    )
+    on_hand_inventory = c(ON_HAND_INVENTORY, rep(0, (SIMULATION_DAYS - 1))), 
+    pipeline_target = rep(0, SIMULATION_DAYS), 
+    in_transit_order = rep(0, SIMULATION_DAYS), 
+    demand_target = rep(0, SIMULATION_DAYS), 
+    order_volume = rep(0, SIMULATION_DAYS), 
+    release_date = rep((SIMULATION_DAYS + 1), SIMULATION_DAYS), 
+    delivered = rep(FALSE, SIMULATION_DAYS), 
+    in_transit_volume = rep(0, SIMULATION_DAYS) 
+  )
   
   return(temp)
 }
+
+
+is.dynamic_data <- function(x) {
+  return(inherits(x, "dynamic_data"))  
+}
+
